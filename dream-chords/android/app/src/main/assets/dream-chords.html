@@ -19,6 +19,7 @@ details{grid-column:1/-1;border:1px solid #fff;border-radius:6px;padding:0 10px}
 .sg{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;padding-bottom:10px}
 #about{grid-column:1/3;opacity:.45;font-size:10px;text-align:center}
 @media (min-aspect-ratio:1/1){#ui{grid-template-columns:repeat(4,1fr)}#play,.row,#about{grid-column:1/5}}
+.eq{background:#110800;color:#ff9a3c;border:1px solid #ff9a3c;border-radius:5px;font:12px monospace;padding:7px;width:100%}#mbd button.on{background:#ff9a3c;color:#000;border-color:#ff9a3c}#mbc{grid-column:1/-1;width:100%;height:140px;background:#140900;border-radius:6px}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="ui">
@@ -35,6 +36,17 @@ details{grid-column:1/-1;border:1px solid #fff;border-radius:6px;padding:0 10px}
 <label>Voices <span id="nv">8</span><input id="voices" type="range" min="4" max="16" value="8"></label>
 <details id="inst"><summary>Instruments</summary><div class="sg" id="instg"></div></details>
 <details id="snd"><summary>Sound</summary><div class="sg"><label>Reverb mix <span data-o="rev"></span><input data-k="rev" data-u="%" type="range" min="0" max="1" step="0.01"></label><label>Reverb size <span data-o="size"></span><input data-k="size" data-u="s" type="range" min="1" max="10" step="0.5"></label><label>Warmth <span data-o="warm"></span><input data-k="warm" data-u="" type="range" min="0" max="100" step="1"></label><label>Width / detune <span data-o="width"></span><input data-k="width" data-u="" type="range" min="0" max="100" step="1"></label><label>Chorus <span data-o="chorus"></span><input data-k="chorus" data-u="" type="range" min="0" max="100" step="1"></label><label>Wub depth <span data-o="wub"></span><input data-k="wub" data-u="" type="range" min="0" max="100" step="1"></label><label>Wub rate<select data-k="wubDiv"><option>1/4</option><option>1/8</option><option>1/8T</option><option>1/16</option><option value="free">Free Hz</option></select></label><label>Wub free Hz <span data-o="wubHz"></span><input data-k="wubHz" data-u="Hz" type="range" min="0.2" max="12" step="0.1"></label><label>Vibrato depth <span data-o="vib"></span><input data-k="vib" data-u="¢" type="range" min="0" max="50" step="1"></label><label>Vibrato rate <span data-o="vibRate"></span><input data-k="vibRate" data-u="Hz" type="range" min="2" max="8" step="0.1"></label><label>Vibrato delay <span data-o="vibDelay"></span><input data-k="vibDelay" data-u="s" type="range" min="0" max="2" step="0.05"></label><label>Fade in <span data-o="fin"></span><input data-k="fin" data-u="s" type="range" min="0" max="20" step="0.5"></label><label>Fade out <span data-o="fout"></span><input data-k="fout" data-u="s" type="range" min="0" max="20" step="0.5"></label></div></details>
+<details id="mbd"><summary>Math Beat (drums)</summary><div class="sg">
+<button id="mbon">Math Beat: OFF</button><label>Preset<select id="mbp"></select></label>
+<label>Variation<select id="mbv"><option value="auto">Auto (climbs 1→6)</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></label>
+<label>Beat volume <span id="mbvv"></span><input id="mbvol" type="range" min="0" max="1" step="0.01"></label>
+<button id="mbsub">Sub-bass</button><button id="mbdbl">Double time</button>
+<label style="grid-column:1/-1">Kick =<input class="eq" id="eqk" spellcheck="false"></label>
+<label style="grid-column:1/-1">Snare =<input class="eq" id="eqs" spellcheck="false"></label>
+<label style="grid-column:1/-1">Hats =<input class="eq" id="eqh" spellcheck="false"></label>
+<label style="grid-column:1/-1">Sub-bass =<input class="eq" id="eqb" spellcheck="false"></label>
+<div style="grid-column:1/-1;font-size:10px;opacity:.6">i = step in the bar (0–15), n = bar number, v = variation 1–6. m(a,b)=a mod b, f=floor, e=exp, sin/cos/abs, r(i,n)=random 0–1. Result 0–1 = loudness (hats above 1 = open hat).</div>
+<canvas id="mbc"></canvas></div></details>
 <progress id="prog" max="1" value="0" hidden style="grid-column:1/-1;width:100%;accent-color:#fff"></progress>
 <div id="about">Dream Chords · original code · idea inspired by a "Dream chords" video by @amilomusic / @scorefollower. Tap the graph to dream a new progression.</div>
 </div>
@@ -187,7 +199,9 @@ function buildGraph(c,out){
   // drone: root + fifth
   const dg=c.createGain();dg.gain.value=0;const dlp=c.createBiquadFilter();dlp.type='lowpass';dlp.frequency.value=420;dlp.connect(dg);dg.connect(bus);
   const dr=[0,7].map(iv=>{const f=c.createConstantSource();f.offset.value=73;st(f);[-6,6].forEach(d=>{const o=c.createOscillator();o.type='sawtooth';o.frequency.value=0;o.detune.value=d;f.connect(o.frequency);o.connect(dlp);st(o)});return {f,iv}});
-  const g={master,dry,wet,conv,lim,wl,wg,ta,trem,chMix,vibD,vibL,vibE,layers,dg,dr,srcs,N};applyParams(c,g,true);return g;
+  const noise=c.createBuffer(1,c.sampleRate*2,c.sampleRate);{const d=noise.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  const beat=c.createGain(),beatLP=c.createBiquadFilter(),beatVol=c.createGain(),beatWet=c.createGain();beatLP.type='lowpass';beatLP.frequency.value=20000;beat.connect(beatLP);beatLP.connect(beatVol);beatVol.connect(master);beatVol.connect(beatWet);beatWet.connect(wet);beatVol.gain.value=0;
+  const g={noise,beat,beatLP,beatVol,beatWet,master,dry,wet,conv,lim,wl,wg,ta,trem,chMix,vibD,vibL,vibE,layers,dg,dr,srcs,N};applyParams(c,g,true);return g;
 }
 function disposeGraph(g){try{g.master.disconnect()}catch(e){}g.srcs.forEach(s=>{try{s.stop()}catch(e){}})}
 const WDIV={'1/4':1,'1/8':2,'1/8T':3,'1/16':4};
@@ -223,6 +237,7 @@ function schedule(c,g,score,t0){
   let fi=Math.max(.05,score.st==='Fade'?Math.max(S.fin,4*spb):S.fin),fo=Math.max(.3,score.en==='Fade'?Math.max(S.fout,5*spb):S.fout);
   if(fi+fo>tot*.9){const k=tot*.9/(fi+fo);fi*=k;fo*=k}
   mg.cancelScheduledValues(t0);mg.setValueAtTime(0,t0);mg.linearRampToValueAtTime(.55,t0+fi);mg.setValueAtTime(.55,end-fo);mg.linearRampToValueAtTime(0,end);
+  mbStart(c,g,t0,end);
 }
 function start(){
   if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)();recDest=ctx.createMediaStreamDestination();
@@ -230,12 +245,63 @@ function start(){
   else if(graphDirty){disposeGraph(graph);graph=buildGraph(ctx,outNode)}graphDirty=false;
   ctx.resume();if(window.DCNative)DCNative.setKeepOn(true);S.score=buildScore();S.t0=ctx.currentTime+.08;schedule(ctx,graph,S.score,S.t0);S.playing=true;$('play').textContent='■ STOP';
 }
-function stop(){S.playing=false;if(window.DCNative)DCNative.setKeepOn(false);$('play').textContent='▶ PLAY';if(graph){const mg=graph.master.gain,t=ctx.currentTime;mg.cancelScheduledValues(t);mg.setValueAtTime(mg.value,t);mg.linearRampToValueAtTime(0,t+.6)}if(rec)toggleRec()}
+function stop(){S.playing=false;mbLive=null;if(window.DCNative)DCNative.setKeepOn(false);$('play').textContent='▶ PLAY';if(graph){const mg=graph.master.gain,t=ctx.currentTime;mg.cancelScheduledValues(t);mg.setValueAtTime(mg.value,t);mg.linearRampToValueAtTime(0,t+.6)}if(rec)toggleRec()}
 // offline audio check (used by tests): returns {peak,rms}
 window.offlineCheck=async(L,a,b,bz)=>{if(bz!=null)S.busy=bz;if(L!=null)S.lenSec=L;if(a)S.start=a;if(b)S.end=b;const sr=22050;S.score=buildScore();const len=S.score.len*60/S.tempo;
   const oc=new OfflineAudioContext(2,Math.ceil(sr*len),sr),g=buildGraph(oc,oc.destination);schedule(oc,g,S.score,0);
   const buf=await oc.startRendering(),d=buf.getChannelData(0);let pk=0,s=0;for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>pk)pk=a;s+=a*a}
   return {peak:+pk.toFixed(3),rms:+Math.sqrt(s/d.length).toFixed(4),seconds:+len.toFixed(1)}};
+
+// ---------- Math Beat (drums from equations) ----------
+const MB_DNB={k:"i==0 || (v>=2&&i==10) || (v>=3&&i==6&&m(n,2)) || (v>=6&&i==13)",
+ s:"v<2 ? i==8 : (i==4||i==12) ? 1 : (v>=4&&m(n,4)==3&&i>=13) ? .3+.2*(i-13) : (v>=5&&(i==7||i==15)) ? .2 : (v>=6&&i==9) ? .3 : 0",
+ h:"v<2 ? 0 : v<3 ? (m(i,2)==0&&r(i,n)>.3)*.5 : v<6 ? (m(i,2)==0 ? .55 : r(i,n)>.55 ? .3 : 0) : (i==14 ? 1.5 : .3+.3*(m(i,2)==0))",
+ b:"(i==0&&m(n,v>=5?2:4)==0) ? 1 : (v>=5&&i==10&&m(n,2)==1) ? .8 : 0"};
+const MBP=[
+ {n:'DnB Math (levels 1–6)',bpm:172,eq:MB_DNB,sd:1.6,wet:.15},
+ {n:'Liquid DnB',bpm:174,eq:{k:"i==0||i==10",s:"(i==4||i==12) ? .9 : (i==7||i==15) ? .15 : 0",h:"m(i,2)==0 ? .4 : .15+.1*r(i,n)",b:"i==0&&m(n,2)==0 ? 1 : i==10&&m(n,2)==1 ? .7 : 0"},sd:1.2,wet:.35,soft:1},
+ {n:'Jungle / Amen-style',bpm:168,eq:{k:"i==0||i==2||i==10||(i==11&&m(n,2))",s:"(i==4||i==12) ? 1 : (i==7||i==9||i==15) ? .35 : (m(n,4)==3&&i>=13) ? .6 : 0",h:"m(i,2)==0 ? .5 : .2",b:"(i==0&&m(n,4)==0) || (i==10&&m(n,4)==2)"},sd:1,wet:.12},
+ {n:'Half-time',bpm:140,eq:{k:"i==0 || (i==11&&m(n,2))",s:"i==8",h:"m(i,4)==2 ? .5 : m(i,2)==0 ? .22 : 0",b:"i==0"},sd:2,wet:.2},
+ {n:'Halftime Dub',bpm:140,eq:{k:"i==0 || (i==3&&m(n,2))",s:"i==8 ? 1 : 0",h:"(i==6||i==14) ? .3 : 0",b:"i==0 ? 1 : i==11 ? .8 : 0"},sd:2.5,wet:.55},
+ {n:'Breakbeat',bpm:130,eq:{k:"i==0||i==7||i==10",s:"(i==4||i==12) ? 1 : i==15 ? .3 : 0",h:"m(i,2)==0 ? .55 : .2",b:"i==0 ? 1 : i==10 ? .6 : 0"},sd:1,wet:.15},
+ {n:'Lo-fi Boom Bap',bpm:88,sw:.18,lofi:1,eq:{k:"i==0||i==7||i==10",s:"i==4||i==12",h:"m(i,2)==0 ? .5 : .15",b:"i==0 ? .8 : 0"},sd:1.2,wet:.15},
+ {n:'Trip-hop',bpm:80,lofi:1,eq:{k:"i==0||i==11",s:"i==8 ? 1 : i==14 ? .2 : 0",h:"m(i,2)==0 ? .3 : 0",b:"i==0&&m(n,2)==0"},sd:3,wet:.45},
+ {n:'Ambient Pulse',bpm:64,soft:1,eq:{k:"i==0 ? .55 : 0",s:"0",h:"i==8 ? .12 : 0",b:"i==0 ? .9 : 0"},sd:4,wet:.6},
+ {n:'Garage 2-step',bpm:132,sw:.2,eq:{k:"i==0 || (i==11&&m(n,2)==0) || (i==9&&m(n,2))",s:"i==4||i==12",h:"m(i,2)==1 ? .5 : .12",b:"i==0 ? 1 : i==6 ? .6 : 0"},sd:1,wet:.2},
+ {n:'Footwork-ish 160',bpm:160,eq:{k:"m(i,3)==0",s:"i==12",h:"m(i,2)==0 ? .4 : .1",b:"m(i,6)==0 ? .8 : 0"},sd:.8,wet:.1},
+ {n:'Polyrhythm 3-over-4',bpm:120,steps:12,eq:{k:"m(i,3)==0",s:"(m(i,4)==0&&i>0) ? .6 : 0",h:"m(i,2)==1 ? .25 : 0",b:"i==0"},sd:2,wet:.3},
+ {n:'Euclidean 5-in-16',bpm:120,eq:{k:"f(i*5/16)!=f((i-1)*5/16)",s:"f((i+4)*3/16)!=f((i+3)*3/16) ? .7 : 0",h:"f(i*7/16)!=f((i-1)*7/16) ? .45 : .1",b:"i==0"},sd:1.5,wet:.3},
+ {n:'Sine Wobble sub',bpm:140,eq:{k:"i==0||i==10",s:"i==8",h:"m(i,2)==0 ? .3 : 0",b:"m(i,2)==0 ? .45+.45*sin(i*PI/4+n) : 0"},sd:.35,wet:.2},
+ {n:'Glitch / Chaos',bpm:150,eq:{k:"sin(i*i*.7+n)>.6",s:"sin(i*3.1+n*1.7)>.75",h:"abs(sin(i*n+i))*.6",b:"sin(i*.9+n*2)>.85"},sd:.6,wet:.3}];
+S.mb={on:false,preset:0,v:'auto',vol:.7,sub:true,dbl:true,eq:Object.assign({},MB_DNB)};
+const MH=[(a,b)=>((a%b)+b)%b,Math.floor,Math.exp,Math.sin,Math.cos,Math.abs,Math.PI,(i,n)=>{const h=Math.sin(i*127.1+n*311.7)*43758.5453;return h-Math.floor(h)}];
+const mbFn={};
+function mbCompile(k){try{const f=new Function('i','n','v','m','f','e','sin','cos','abs','PI','r','"use strict";return +('+S.mb.eq[k]+')||0');f(0,0,1,...MH);mbFn[k]=f;return true}catch(e){mbFn[k]=()=>0;return false}}
+['k','s','h','b'].forEach(mbCompile);
+const mbP=()=>MBP[S.mb.preset];
+function mbMult(){if(!S.mb.dbl)return 1;let b=1;[1,2,3,4].forEach(k=>{if(Math.abs(S.tempo*k-mbP().bpm)<Math.abs(S.tempo*b-mbP().bpm))b=k});return b}
+function mbVar(n){return S.mb.v==='auto'?Math.min(6,1+Math.floor(n/4)):+S.mb.v}
+function mbAt(k,i,n){try{return Math.max(0,Math.min(2,mbFn[k](i,n,mbVar(n),...MH)))}catch(e){return 0}}
+function mbHit(c,g,typ,T,vel,P,beatDur){const B=g.beat,soft=P.soft?.6:1;
+  if(typ==='k'){const o=c.createOscillator(),a=c.createGain();o.frequency.setValueAtTime(P.soft?110:160,T);o.frequency.exponentialRampToValueAtTime(44,T+.08);
+    a.gain.setValueAtTime(0,T);a.gain.linearRampToValueAtTime(vel*1.1,T+.002);a.gain.exponentialRampToValueAtTime(.001,T+(P.soft?.45:.32));o.connect(a);a.connect(B);o.start(T);o.stop(T+.5)}
+  else if(typ==='s'){const nz=c.createBufferSource();nz.buffer=g.noise;const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=P.lofi?1500:2100;bp.Q.value=.7;const a=c.createGain();
+    a.gain.setValueAtTime(vel*.75*soft,T);a.gain.exponentialRampToValueAtTime(.001,T+.17);nz.connect(bp);bp.connect(a);a.connect(B);nz.start(T,Math.random());nz.stop(T+.2);
+    const o=c.createOscillator(),b=c.createGain();o.type='triangle';o.frequency.setValueAtTime(220,T);o.frequency.exponentialRampToValueAtTime(170,T+.06);b.gain.setValueAtTime(vel*.6*soft,T);b.gain.exponentialRampToValueAtTime(.001,T+.09);o.connect(b);b.connect(B);o.start(T);o.stop(T+.1)}
+  else if(typ==='h'){const open=vel>1,nz=c.createBufferSource();nz.buffer=g.noise;const hp=c.createBiquadFilter();hp.type='highpass';hp.frequency.value=P.lofi?6000:7800;const a=c.createGain(),d=open?.28:.045;
+    a.gain.setValueAtTime(Math.min(1,vel)*.32*soft,T);a.gain.exponentialRampToValueAtTime(.001,T+d);nz.connect(hp);hp.connect(a);a.connect(B);nz.start(T,Math.random());nz.stop(T+d+.02)}
+  else if(typ==='b'&&S.mb.sub){const f0=hz(33+((S.key+3)%12)),o=c.createOscillator(),a=c.createGain(),tc=beatDur/30*4,dec=P.sd*beatDur;
+    // pitch dive follows y = 1.5*e^(-30*(x mod 1)) - 1/2 : starts high, settles on the key root
+    o.frequency.setValueAtTime(f0*2.5,T);o.frequency.setTargetAtTime(f0,T,tc);
+    a.gain.setValueAtTime(0,T);a.gain.linearRampToValueAtTime(vel*.85,T+.006);a.gain.setTargetAtTime(0,T+.03,dec/3);o.connect(a);a.connect(B);o.start(T);o.stop(T+.03+dec*1.6)}}
+function mbSched(c,g,L,until){const P=mbP(),st=P.steps||16;
+  while(L.next*L.sd+L.t0<until){const s=L.next++,T0=L.t0+s*L.sd;if(T0>=L.end)break;const i=s%st,n=Math.floor(s/st),T=T0+(s%2?(P.sw||0)*L.sd:0);
+    ['k','s','h','b'].forEach(k=>{const v=mbAt(k,i,n);if(v>.01)mbHit(c,g,k,T,v,P,L.sd*st/4)})}}
+let mbLive=null;
+function mbStart(c,g,t0,end){const P=mbP(),sd=60/(S.tempo*mbMult())/((P.steps||16)/4);g.beatVol.gain.value=S.mb.on?S.mb.vol:0;
+  g.beatWet.gain.value=P.wet||0;g.beatLP.frequency.value=P.lofi?4200:20000;
+  const L={t0,sd,end,next:0};if(c===ctx){mbLive=L;if(S.mb.on)mbSched(c,g,L,c.currentTime+.3)}else if(S.mb.on){mbSched(c,g,L,Math.min(end,t0+2.5));for(let t=2;t<end;t+=2)c.suspend(t).then(()=>{mbSched(c,g,L,t+2.5);c.resume()})}}
+setInterval(()=>{if(S.playing&&mbLive&&S.mb.on&&graph){if(mbLive.next*mbLive.sd+mbLive.t0<ctx.currentTime)mbLive.next=Math.ceil((ctx.currentTime-mbLive.t0)/mbLive.sd);mbSched(ctx,graph,mbLive,ctx.currentTime+.3)}},60);
 // ---------- MP4 export (WebCodecs + tiny muxer, original code) ----------
 function pcm16(buf){const L=buf.getChannelData(0),R=buf.getChannelData(1),o=new Int16Array(L.length*2);for(let i=0;i<L.length;i++){o[2*i]=Math.max(-1,Math.min(1,L[i]))*32767;o[2*i+1]=Math.max(-1,Math.min(1,R[i]))*32767}return new Uint8Array(o.buffer)}
 function muxMP4(o){
@@ -340,11 +406,28 @@ function draw(beat){
   c.lineWidth=Math.max(.9,1.6*thin);sc.keys.forEach(vk=>{c.beginPath();for(let b=0;b<=bn;b+=gs){const m=midiAt(vk,b,spb);b?c.lineTo(gX(b),gY(m)):c.moveTo(gX(b),gY(m))}c.stroke();
     if(beat>0){c.beginPath();c.arc(gX(bn),gY(midiAt(vk,bn,spb)),3.2*Math.max(.55,thin),0,7);c.fill()}});
 }
+const mbc=$('mbc'),mx=mbc.getContext('2d');
+function drawMB(){if(!$('mbd').open)return;const r=mbc.getBoundingClientRect(),w=r.width,h=r.height,dp=Math.min(2,window.devicePixelRatio||1);if(mbc.width!==Math.round(w*dp)){mbc.width=w*dp;mbc.height=h*dp}
+  const c=mx,P=mbP(),st=P.steps||16,O='#ff9a3c';c.setTransform(dp,0,0,dp,0,0);c.fillStyle='#140900';c.fillRect(0,0,w,h);
+  let pos=0;if(S.playing&&mbLive)pos=Math.max(0,(ctx.currentTime-mbLive.t0)/mbLive.sd);const n=Math.floor(pos/st),bars=4,n0=Math.floor(n/bars)*bars;
+  const X=s=>8+s/(st*bars)*(w-16),base=h-22;c.strokeStyle='rgba(255,154,60,.3)';c.lineWidth=1;
+  for(let b=0;b<=bars;b++){c.beginPath();c.moveTo(X(b*st),14);c.lineTo(X(b*st),base);c.stroke()}
+  c.beginPath();c.moveTo(8,base);c.lineTo(w-8,base);c.stroke();
+  // sub envelope y=1.5e^(-30(x mod 1))-1/2 at each sub hit
+  c.strokeStyle=O;c.lineWidth=1.6;c.beginPath();let y0=base;
+  for(let s=0;s<st*bars;s+=.25){const nn=n0+Math.floor(s/st),i=Math.floor(s%st);let y=0;
+    for(let q=i;q>=Math.max(0,i-8);q--){const v=mbAt('b',q,nn);if(v>.01){const x=(s%st-q)/4;y=v*Math.max(0,1.5*Math.exp(-30*x/4*4/ (P.sd||1))-.5+.5)/1.5;break}}
+    const yy=base-y*(base-20)*.9;s?c.lineTo(X(s),yy):c.moveTo(X(s),yy)}
+  if(S.mb.sub)c.stroke();
+  for(let s=0;s<st*bars;s++){const nn=n0+Math.floor(s/st),i=s%st;[['k',1,9],['s',.62,6],['h',.32,3]].forEach(([k,hgt,wd])=>{const v=mbAt(k,i,nn);if(v>.01){c.fillStyle=k==='k'?O:k==='s'?'#ffd0a0':'rgba(255,154,60,.6)';const hh=Math.min(1,v)*hgt*(base-24);c.fillRect(X(s)-wd/2+1,base-hh,wd,hh)}})}
+  if(S.playing&&S.mb.on){const px=X(pos-n0*st);c.strokeStyle='#fff';c.beginPath();c.moveTo(px,10);c.lineTo(px,base+4);c.stroke()}
+  c.fillStyle=O;c.font='11px monospace';c.textBaseline='top';c.fillText(P.n+'  ·  bar '+(n+1)+'  ·  v'+mbVar(n)+'  ·  '+Math.round(S.tempo*mbMult())+' bpm',8,2);
+  c.textBaseline='bottom';c.fillText('sub: y = 1.5·e^(−30·(x mod 1)) − ½    kick: '+S.mb.eq.k,8,h-3)}
 let demoBeat=null;
 function loop(){let beat=0;
   if(S.playing){const spb=60/S.tempo;beat=(ctx.currentTime-S.t0)/spb;
     if(beat>S.score.len){if(S.loop){S.t0=ctx.currentTime+.05;S.score=buildScore();schedule(ctx,graph,S.score,S.t0);beat=0}else{stop()}}}
-  if(demoBeat!==null)beat=demoBeat;draw(Math.max(0,beat));requestAnimationFrame(loop)}
+  if(demoBeat!==null)beat=demoBeat;draw(Math.max(0,beat));drawMB();requestAnimationFrame(loop)}
 // ---------- controls ----------
 const DEG=[[0,['maj9','add9','6/9']],[2,['m9','m11']],[4,['m11','m9']],[5,['maj9','6/9','add9']],[7,['add9','sus2','6/9']],[9,['m9','m11']]];
 const pick=a=>a[Math.floor(Math.random()*a.length)];
@@ -377,6 +460,16 @@ $('exp').onclick=async()=>{const b=$('exp');b.disabled=true;b.textContent='Expor
 document.querySelectorAll('[data-k]').forEach(el=>{const k=el.dataset.k,o=document.querySelector(`[data-o="${k}"]`);el.value=S[k];
   const show=()=>{if(o)o.textContent=el.dataset.u==='%'?Math.round(S[k]*100)+'%':S[k]+(el.dataset.u||'')};show();
   el.oninput=()=>{S[k]=el.type==='range'?+el.value:el.value;show();if(graph&&!graphDirty){applyParams(ctx,graph);if(k==='size')graph.conv.buffer=impulse(ctx,S.size)}}});
+(function(){const sel=$('mbp');MBP.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.n;sel.appendChild(o)});
+  const EQ={k:'eqk',s:'eqs',h:'eqh',b:'eqb'};
+  const sync=()=>{$('mbon').textContent='Math Beat: '+(S.mb.on?'ON':'OFF');$('mbon').classList.toggle('on',S.mb.on);$('mbsub').classList.toggle('on',S.mb.sub);$('mbdbl').classList.toggle('on',S.mb.dbl);
+    sel.value=S.mb.preset;$('mbv').value=S.mb.v;$('mbvol').value=S.mb.vol;$('mbvv').textContent=Math.round(S.mb.vol*100)+'%';Object.entries(EQ).forEach(([k,id])=>{$(id).value=S.mb.eq[k];$(id).style.borderColor=''})};
+  window.mbSync=sync;const restart=()=>{if(S.playing&&graph&&mbLive){graph.beatVol.gain.setTargetAtTime(S.mb.on?S.mb.vol:0,ctx.currentTime,.03);mbStart(ctx,graph,mbLive.t0,mbLive.end)}};
+  $('mbon').onclick=()=>{S.mb.on=!S.mb.on;sync();restart()};
+  sel.onchange=()=>{S.mb.preset=+sel.value;S.mb.eq=Object.assign({},MBP[S.mb.preset].eq);['k','s','h','b'].forEach(mbCompile);sync();restart()};
+  $('mbv').onchange=e=>{S.mb.v=e.target.value};$('mbsub').onclick=()=>{S.mb.sub=!S.mb.sub;sync()};$('mbdbl').onclick=()=>{S.mb.dbl=!S.mb.dbl;sync();restart()};
+  $('mbvol').oninput=e=>{S.mb.vol=+e.target.value;$('mbvv').textContent=Math.round(S.mb.vol*100)+'%';if(graph&&S.mb.on)graph.beatVol.gain.setTargetAtTime(S.mb.vol,ctx.currentTime,.03)};
+  Object.entries(EQ).forEach(([k,id])=>{$(id).oninput=e=>{S.mb.eq[k]=e.target.value;e.target.style.borderColor=mbCompile(k)?'':'#f33'}});sync()})();
 let rec=null,chunks=[];
 function toggleRec(){
   if(rec){rec.stop();return}
@@ -391,7 +484,7 @@ function toggleRec(){
   if(!rec.mimeType.includes('mp4'))$('about').textContent='Note: this browser can only record .webm live. Use ⇩ MP4 for an .mp4 file.';rec.start(250);$('rec').classList.add('on');$('rec').textContent='■ Save';
 }
 $('rec').onclick=toggleRec;
-const qs=new URLSearchParams(location.search);if(qs.has('panel')){$('snd').open=true;$('inst').open=true;$('ui').scrollTop=$('inst').offsetTop-$('ui').offsetTop-8}if(qs.has('demo'))demoBeat=+qs.get('demo');if(qs.has('start'))S.start=$('sstart').value=qs.get('start');if(qs.has('end'))S.end=$('send').value=qs.get('end');
+const qs=new URLSearchParams(location.search);if(qs.has('panel')){$('snd').open=true;$('inst').open=true;$('ui').scrollTop=$('inst').offsetTop-$('ui').offsetTop-8}if(qs.has('mb')){S.mb.on=true;S.mb.preset=+qs.get('mb')||0;S.mb.eq=Object.assign({},MBP[S.mb.preset].eq);['k','s','h','b'].forEach(mbCompile);$('mbd').open=true;mbSync()}if(qs.has('demo'))demoBeat=+qs.get('demo');if(qs.has('start'))S.start=$('sstart').value=qs.get('start');if(qs.has('end'))S.end=$('send').value=qs.get('end');
 resize();S.score=buildScore();loop();
 if(qs.has('offline'))offlineCheck().then(r=>{document.title='OFFLINE '+JSON.stringify(r)}).catch(e=>document.title='ERR '+e);
 </script></body></html>

@@ -1,0 +1,12 @@
+# Dream Chords Android — PROGRESS
+2026-10-19: v1 debug APK at /workspace/android/dreamchords-v1.apk (848 KB), package com.relaximus.dreamchords, minSdk 26, targetSdk 36.
+- Pure Java WebView wrapper with no AndroidX libraries. assets/dream-chords.html is a copy of /workspace/dreamchords/dream-chords.html; re-copy it after web edits.
+- It's served from https://appassets.androidplatform.net (a secure context, so WebCodecs works). Navigation away is blocked, and file and content access are off.
+- Autoplay is allowed after a tap, the screen stays on while playing, and the app is portrait only.
+- DCNative bridge: setKeepOn, begin/write (base64 chunks into the cache), save (MediaStore Movies/DreamChords), muxSave, shareLast (share sheet).
+- muxSave takes the video-only H.264 MP4 made by JS plus 16-bit PCM, encodes AAC-LC 192k natively with MediaCodec, and joins them with MediaMuxer. This gives Gallery/X-friendly MP4s and doesn't depend on WebView AAC.
+- Rec (live MediaRecorder) also saves through the bridge (mp4 if supported, else webm).
+- Permissions: WRITE_EXTERNAL_STORAGE only up to API 28 (legacy Android 8-9); none on 10+.
+- Build: `. ../env.sh && ./gradlew assembleDebug`. The foojay plugin was removed from settings. JDK 21 was reinstalled via apt on 2026-10-19 (it had gone missing). NEVER run the emulator.
+- Not tested on a device: the native mux/save/share code compiled but has not run. The JS side was tested headless with a fake bridge.
+2026-10-20: v2 APK (versionCode 2, versionName 1.1) at /workspace/android/dreamchords-v2.apk (851 KB). It bundles web v6 (voices, instruments, layers, drone) and uses the same debug signing key as v1, so it installs as an update.

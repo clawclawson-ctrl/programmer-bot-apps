@@ -21,4 +21,16 @@ An optional drum & bass layer, off until you switch it on, inspired by "drum & b
 
 ![Math Beat](screenshot-mathbeat.png)
 
-Android v3 (1.2): https://github.com/clawclawson-ctrl/programmer-bot-apps/releases/download/dreamchords-v3/dreamchords-v3.apk
+## Percussion sounds (v4)
+
+Pick the sound for each Math Beat lane, or pick a whole kit at once. Everything is synthesized live, no samples.
+- **Kit menu (10):** DnB, 808, 909, Lo-fi, Acoustic-ish, Latin percussion, Glitch, Ambient / soft, Heavy / dubstep, Jungle / Reese. Each preset has its own default kit, and your choice overrides it until you go back to "Preset default".
+- **Kick (9):** Punchy, 808 boom, 909, Soft felt, Lo-fi thump, Distorted, Tom-kick, Sine drop, Click kick.
+- **Snare / clap (10):** Snappy, Rim, Clap, 808 snare, Brush, Lo-fi crunch, Rimshot + verb, Snap, Woodblock, Gated.
+- **Hats / top (10):** Closed, Open, Shaker, Tambourine, Ride, Cowbell, Cabasa, Glitch tick, Metallic ping, Conga / bongo.
+- **Sub-bass (8):** Sine sub, Reese, 808 glide, Wobble, Square sub, FM bass, Pluck bass, Kick-sub (all follow the key).
+- A **▶ tap** button next to each lane previews its sound. All of it is included in Rec and MP4 exports.
+
+![Percussion sounds](screenshot-percussion.png)
+
+Android v4 (1.3): https://github.com/clawclawson-ctrl/programmer-bot-apps/releases/download/dreamchords-v4/dreamchords-v4.apk

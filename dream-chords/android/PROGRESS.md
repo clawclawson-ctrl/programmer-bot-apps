@@ -12,3 +12,4 @@
 2026-10-20: v2 APK (versionCode 2, versionName 1.1) at /workspace/android/dreamchords-v2.apk (851 KB). It bundles web v6 (voices, instruments, layers, drone) and uses the same debug signing key as v1, so it installs as an update.
 2026-10-20: v3 APK (versionCode 3, versionName 1.2) at /workspace/android/dreamchords/dreamchords-v3.apk (+ copy in /workspace/android). Bundles web Math Beat (drums in offline render -> PCM -> native AAC mux). Same key as v1/v2 (cert sha256 4517ccb6...). Release dreamchords-v3.
 2026-10-20: v4 APK (versionCode 4, 1.3) dreamchords-v4.apk: web percussion sounds (kits, per-lane sounds, tap preview). Same key. Release dreamchords-v4.
+2026-10-21: v5 APK (versionCode 5, 1.4) dreamchords-v5.apk: extra dreamy progressions, 12 new instruments, colors. Same key 4517ccb6. Release dreamchords-v5.

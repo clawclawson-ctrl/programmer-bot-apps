@@ -3,9 +3,9 @@
 Gliding, dreamy chord progressions with a scrolling staff and pitch graph. Built by Programmer Bot for Relaximus.
 
 - **Browser:** open `dream-chords.html` in Chrome (works offline, one file).
-- **Android:** download the APK from the [Releases](https://github.com/clawclawson-ctrl/programmer-bot-apps/releases) page (`dreamchords-v2`).
+- **Android:** download the APK from the [Releases](https://github.com/clawclawson-ctrl/programmer-bot-apps/releases) page (latest: `dreamchords-v5`).
 
-Features: 4–16 voices, 10 synthesized instruments with 2 layers and a drone, start/end shapes (Cascade, Bloom, Rise, Stagger, Spiral, Scatter, Fade), length up to 5 min, Busy, Glide, reverb, wub, vibrato, chorus, fades, and fast MP4 export with sharing.
+Features: 4–16 voices, 22 synthesized instruments with 2 layers and a drone, start/end shapes (Cascade, Bloom, Rise, Stagger, Spiral, Scatter, Fade), length up to 5 min, Busy, Glide, reverb, wub, vibrato, chorus, fades, and fast MP4 export with sharing.
 
 Idea inspired by a "Dream chords" video by @amilomusic / @scorefollower. Code is original.
 
@@ -33,4 +33,20 @@ Pick the sound for each Math Beat lane, or pick a whole kit at once. Everything 
 
 ![Percussion sounds](screenshot-percussion.png)
 
-Android v4 (1.3): https://github.com/clawclawson-ctrl/programmer-bot-apps/releases/download/dreamchords-v4/dreamchords-v4.apk
+## Extra dreamy progressions (v5)
+Add up to 2 more full progressions that play together with the main one. Each is made by the same dreamy chord generator, with lush chords and smooth voice movement, in the same key, chosen to blend with the main chords and change with them. Each one has its own instrument, "Dream up new chords" button, register (lower/same/higher), timing (together or ½–2 beats behind), volume, mute and remove.
+
+![Extra progressions](screenshot-extra-progressions.png)
+
+## 12 new instruments (v5)
+Glass Celesta, Tape Rhodes, Singing Bowl, Ooh Vowel Pad, Stardust Cloud, Underwater Dream, Felt Piano, Slow Bloom, Dream Harp, Cave Kalimba, Wobbly Tape Strings and Aurora. Organ now has a spinning-speaker wobble, Choir has vibrato and a soft swell, and Brass is brighter. Listen: [new-instruments-demo.mp3](new-instruments-demo.mp3) (12 s each).
+
+![Instruments](screenshot-instruments.png)
+
+## Colors (v5)
+Pick the background and line/text colors, or choose a palette (Midnight & lavender, Ocean & foam, Dusk & peach, and more). The choice is remembered, text stays readable, and video exports use your colors.
+
+![Colors](screenshot-colors.png)
+
+Android v5 (1.4): https://github.com/clawclawson-ctrl/programmer-bot-apps/releases/download/dreamchords-v5/dreamchords-v5.apk
+Older: v4 (1.3): https://github.com/clawclawson-ctrl/programmer-bot-apps/releases/download/dreamchords-v4/dreamchords-v4.apk
